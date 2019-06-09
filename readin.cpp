@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+typedef std::unordered_map<std::string, int> hlist;
 
 int writecount = 0;
 std::string type;
@@ -18,8 +19,10 @@ void readarticleL(std::string name, std::string &article, std::ofstream &namelis
 void removeChars( std::string &str, char* charsToRemove);
 bool containsChars( std::string &str, char* charsToRemove);
 bool prohibitedName(std::string str);
-void linkarticles(std::string filename, dirname, directory){
-void linkarticlesR(std::string filename, dirname, &article);
+void linkarticles(std::string filename, std::string dirname, std::string directory);
+void linkarticlesR(std::string filename, std::string dirname, std::string &article);
+int Hconnect(hlist *ascore, std::string name, std::string path);
+std::string finddir(std::string &name);
 
 int main(int argc, char* argv[]){
     std::ifstream read("articles.xml"); //XML file to be read
@@ -118,26 +121,52 @@ int main(int argc, char* argv[]){
     }else if(option == 3){
         /**ANALYSIS BASED ON PREVIOUSLY GENERATED DATABASES**/
         ///at the moment its only text to webs
-        if (mkdir("Web", 0777) == -1) std::cerr << "Error :  " << strerror(errno) << std::endl;
-        else std::cout << "Directory created";
-        std::string direc = "Articles";
-        DIR* dirp = opendir(direc.c_str());
-        struct dirent * dp;
-        while ((dp = readdir(dirp)) != NULL) {
-            std::string loc = dp->d_name;
-            std::cout<<loc<<std::endl;
-            loc = "Articles/" + loc;
-            if(loc.find(".txt")==std::string::npos){
+        std::cout<<"Would you like to (W) Create Web link files (based on existing text files) (H) Calculate the Hitler Score?"<<std::endl;
+        std::cin<<type;
+        if(type == "W"){
+            if (mkdir("Web", 0777) == -1) std::cerr << "Error :  " << strerror(errno) << std::endl;
+            else std::cout << "Directory created";
+            std::string direc = "Articles";
+            DIR* dirp = opendir(direc.c_str());
+            struct dirent * dp;
+            while ((dp = readdir(dirp)) != NULL) {
+                std::string loc = dp->d_name;
+                std::cout<<loc<<std::endl;
+                loc = "Articles/" + loc;
+                if(loc.find(".txt")==std::string::npos){
+                    DIR* dirpdeep = opendir(loc.c_str());
+                    struct dirent * dpdeep;
+                    while ((dpdeep = readdir(dirpdeep)) != NULL) {
+                        std::string filename = dpdeep->d_name;
+                        std::cout<<"     "<<filename<<" ";
+                        ///CREATE WEB FILES HERE
+                        linkarticles(filename, loc, dp->d_name);
+            }}}
+            closedir(dirp);
+            closedir(dirpdeep);
+        }else if (type == "H"){
+            type = "Webs";
+            std::ofstream scorelist("hitlerscores.txt"); //The file (will be huge and likely normally unreadable)
+            scorelist<<"ALL HITLER SCORES (unordered):\n";
+            hlist articlescore;
+            articlescore["HITLERS PAGE HERE"] = 0;
+            std::string direc = "Webs";
+            DIR* dirp = opendir(direc.c_str());
+            struct dirent * dp;
+            while ((dp = readdir(dirp)) != NULL) {
+                std::string loc = dp->d_name;
+                std::cout<<loc<<std::endl;
+                loc = "Webs/" + loc;
                 DIR* dirpdeep = opendir(loc.c_str());
                 struct dirent * dpdeep;
                 while ((dpdeep = readdir(dirpdeep)) != NULL) {
                     std::string filename = dpdeep->d_name;
                     std::cout<<"     "<<filename<<" ";
-                        ///CREATE WEB FILES HERE
-                        linkarticles(filename, loc, dp->d_name);
-        }}}
-        closedir(dirp);
-        closedir(dirpdeep);
+                    articlescore[filename] = Hconnect();
+            }}
+            closedir(dirp);
+            closedir(dirpdeep);
+        }
     }else{
         std::cout<<"Unknown option selected. Program Quitting.";
     }
@@ -146,16 +175,7 @@ int main(int argc, char* argv[]){
 
 void readarticle(std::string name, std::string &article,std::ofstream &namelist){
     writecount++; //increment article count
-    std::string dirname;
-    ///Creating file name; taking out prohibited characters and names for windows file system
-    if(name.length()<2) dirname = name.substr(0,1); //length of file; first two characters at most
-    else dirname = name.substr(0,2);
-    if(containsChars(dirname,"/\\:*?<>|+()@-!$\"")) dirname = "etc"; //prohibited file characters
-    while(name.find(".")!=std::string::npos) name.replace(name.find("."),1,"(dot)"); //. isnt (totally) allowed, but its very common and i dont want to filter it into etc
-    while(dirname.find(".")!=std::string::npos) dirname.replace(dirname.find("."),1,"(dot)");
-    if(prohibitedName(name)) name += "(ws)"; //the hard-coded non-allowed windows names
-
-    dirname = type + "/" + dirname;
+    std::string dirname = finddir(name);
 
     if (mkdir(dirname.c_str(), 0777) == -1){
     }else{ std::cout << "New Directory: "<<dirname<<std::endl;} //making new directory if new index
@@ -174,14 +194,7 @@ void readarticle(std::string name, std::string &article,std::ofstream &namelist)
 }
 void readarticleL(std::string name, std::string &article,std::ofstream &namelist){
     writecount++; //increment article count
-    std::string dirname;
-    if(name.length()<2) dirname = name.substr(0,1); //beginning to find/make directory
-    else dirname = name.substr(0,2);
-    if(containsChars(dirname,"/\\:*?<>|+()@-!$\"")) dirname = "etc";
-    while(name.find(".")!=std::string::npos) name.replace(name.find("."),1,"(dot)");
-    while(dirname.find(".")!=std::string::npos) dirname.replace(dirname.find("."),1,"(dot)");
-    if(prohibitedName(name)) name += "(ws)";
-    dirname = type + "/" + dirname;
+    std::string dirname = finddir();
 
     if (mkdir(dirname.c_str(), 0777) == -1){
     }else{ std::cout << "New Directory: "<<dirname<<std::endl;}
@@ -196,7 +209,32 @@ void readarticleL(std::string name, std::string &article,std::ofstream &namelist
     linkarticlesR(filename,dirname,article); ///pass the info to another function to find web
 }
 
-void linkarticles(std::string filename, dirname, directory){ //this one is for taking a text file system and turning it into webs
+int Hconnect(hlist *ascore, std::string name, std::string path){
+    hlist::iterator itr = ascore.find(name);
+    if(itr == ascore.end()){ //if not in the hash map already
+        std::ifstream file(path); //read in contents from parsed file
+        std::vector<std::string> links; //all the links in one particular file
+        std::string link;
+        while(file>>link){
+            if(link == "INSERT HITLERS PAGE HERE"){
+                ascore[name] = 1;
+                return 1;
+            }
+            links.push_back(link);
+        } //by here we have a valid vector of links
+        int top = 99999999; //arbitrary big number
+        int didstance;
+        std::string dir = finddir(name);
+        for(int x = 0;x<links.size();x++){
+            distance = Hconnect(ascore,links[x],dir);
+            if(distance < top) top = distance;
+        }
+    }else{
+        return hlist[name];
+    }
+}
+
+void linkarticles(std::string filename, std::string dirname, std::string directory){ //this one is for taking a text file system and turning it into webs
     std::string aname = dirname + "/" + filename; //location in articles
     std::string wname = "Webs/" + directory + "/" + filename; //new location in webs
     std::ofstream warticle(wname);
@@ -218,7 +256,7 @@ void linkarticles(std::string filename, dirname, directory){ //this one is for t
     if (std::remove(aname.c_str( )) !=0)std::cout<<"Remove operation failed"<<std:: endl; //remove the original file in articles to save space.
     else std::cout<<test<<" has been removed."<<std::endl;
 }
-void linkarticlesR(std::string filename, dirname, &article){
+void linkarticlesR(std::string filename, std::string dirname, std::string &article){
     std::ofstream warticle(filename); //the new file
     std::string link;
     while(article.find("[[")!=std::string::npos){ //links in XML are denoted by [[...]], we're finding them
@@ -230,10 +268,20 @@ void linkarticlesR(std::string filename, dirname, &article){
     warticle.close(); //close and return
 }
 
+std::string finddir(std::string &name){
+    std::string dirname;
+    ///Creating file name; taking out prohibited characters and names for windows file system
+    if(name.length()<2) dirname = name.substr(0,1); //length of file; first two characters at most
+    else dirname = name.substr(0,2);
+    if(containsChars(dirname,"/\\:*?<>|+()@-!$\"")) dirname = "etc"; //prohibited file characters
+    while(name.find(".")!=std::string::npos) name.replace(name.find("."),1,"(dot)"); //. isnt (totally) allowed, but its very common and i dont want to filter it into etc
+    while(dirname.find(".")!=std::string::npos) dirname.replace(dirname.find("."),1,"(dot)");
+    if(prohibitedName(name)) name += "(ws)"; //the hard-coded non-allowed windows names
+    dirname = type + "/" + dirname;
+    return dirname;
+}
 void removeChars(std::string &str, char* charsToRemove ) {
-    for ( unsigned int i = 0; i < strlen(charsToRemove); ++i ) {
-        str.erase( remove(str.begin(), str.end(), charsToRemove[i]), str.end() );
-    }
+    for (unsigned int i = 0; i < strlen(charsToRemove); ++i ) str.erase(remove(str.begin(), str.end(), charsToRemove[i]), str.end() );
 }
 bool containsChars(std::string &str, char* charsToRemove ) {
     for ( unsigned int i = 0; i < strlen(charsToRemove); ++i ) {
@@ -246,12 +294,6 @@ bool prohibitedName(std::string str){
     if(str.length() == 4 && (str.substr(0,3) == "COM" || str.substr(0,3) == "LPT") && isdigit(str[3])) return true;
     return false;
 }
-
-
-
-
-
-
 
 
 
