@@ -11,6 +11,7 @@
 #include <dirent.h>
 
 typedef std::unordered_map<std::string, int> hlist;
+typedef std::unordered_map<std::string, boolean> inlist;
 
 int writecount = 0;
 std::string type;
@@ -21,7 +22,7 @@ bool containsChars( std::string &str, char* charsToRemove);
 bool prohibitedName(std::string str);
 void linkarticles(std::string filename, std::string dirname, std::string directory);
 void linkarticlesR(std::string filename, std::string dirname, std::string &article);
-int Hconnect(hlist *ascore, std::string name, std::string path);
+int Hconnect(hlist *ascore, inlist *in, std::string name, std::string path);
 std::string finddir(std::string &name);
 
 int main(int argc, char* argv[]){
@@ -149,7 +150,8 @@ int main(int argc, char* argv[]){
             std::ofstream scorelist("hitlerscores.txt"); //The file (will be huge and likely normally unreadable)
             scorelist<<"ALL HITLER SCORES (unordered):\n";
             hlist articlescore;
-            articlescore["HITLERS PAGE HERE"] = 0;
+            inlist in;
+            articlescore["adolf hitler"] = 0;
             std::string direc = "Webs";
             DIR* dirp = opendir(direc.c_str());
             struct dirent * dp;
@@ -162,7 +164,8 @@ int main(int argc, char* argv[]){
                 while ((dpdeep = readdir(dirpdeep)) != NULL) {
                     std::string filename = dpdeep->d_name;
                     std::cout<<"     "<<filename<<" ";
-                    articlescore[filename] = Hconnect();
+                    articlescore[filename] = Hconnect(articlescore, in, filename, loc);
+                    in.clear();
             }}
             closedir(dirp);
             closedir(dirpdeep);
@@ -209,14 +212,16 @@ void readarticleL(std::string name, std::string &article,std::ofstream &namelist
     linkarticlesR(filename,dirname,article); ///pass the info to another function to find web
 }
 
-int Hconnect(hlist *ascore, std::string name, std::string path){
+int Hconnect(hlist *ascore, inlist *in, std::string name, std::string path){
     hlist::iterator itr = ascore.find(name);
+    in[name] = true;
+    hlist::iterator initr;
     if(itr == ascore.end()){ //if not in the hash map already
         std::ifstream file(path); //read in contents from parsed file
         std::vector<std::string> links; //all the links in one particular file
         std::string link;
         while(file>>link){
-            if(link == "INSERT HITLERS PAGE HERE"){
+            if(link == "adolf hitler"){
                 ascore[name] = 1;
                 return 1;
             }
@@ -226,7 +231,9 @@ int Hconnect(hlist *ascore, std::string name, std::string path){
         int didstance;
         std::string dir = finddir(name);
         for(int x = 0;x<links.size();x++){
-            distance = Hconnect(ascore,links[x],dir);
+            initr = in.find(links[x]);
+            if(initr == in.end()) distance = Hconnect(ascore,links[x],dir)+1;
+            else distance = top+1;
             if(distance < top) top = distance;
         }
     }else{
@@ -294,15 +301,3 @@ bool prohibitedName(std::string str){
     if(str.length() == 4 && (str.substr(0,3) == "COM" || str.substr(0,3) == "LPT") && isdigit(str[3])) return true;
     return false;
 }
-
-
-
-
-
-
-
-
-
-
-
-
