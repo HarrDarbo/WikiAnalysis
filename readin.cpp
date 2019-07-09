@@ -16,16 +16,17 @@ typedef std::unordered_map<std::string, bool> inlist;
 
 int writecount = 0;
 std::string type;
-void readarticle(std::string name, std::string &article, std::ofstream &namelist);
-void readarticleL(std::string name, std::string &article, std::ofstream &namelist);
+void readarticle(std::string name, std::string &article, std::ofstream &namelist, inlist &dirs);
+void readarticleL(std::string name, std::string &article, std::ofstream &namelist, inlist &dirs);
 void removeChars( std::string &str, char* charsToRemove);
-bool containsChars( std::string &str, char* charsToRemove);
+bool containsChars( std::string &str, const char* charsToRemove);
 bool prohibitedName(std::string str);
 void linkarticles(std::string filename, std::string dirname, std::string directory);
 void linkarticlesR(std::string filename, std::string dirname, std::string &article);
 int Hconnect(hlist &ascore, inlist &in, std::string name, std::string path);
-void redirectadd(std::string name, std::string &article);
+void redirectadd(std::string name, std::string &article, std::ofstream &wredirect);
 std::string finddir(std::string &name);
+bool badAType(std::string &name);
 
 int main(int argc, char* argv[]){
     std::ifstream read("articles.xml"); //XML file to be read
@@ -70,7 +71,6 @@ int main(int argc, char* argv[]){
 
     }else if(option == 2){
         /**CREATING ARTICLE DATABASE: Main Purpose, can make raw articles or webs**/
-        std::string articletypes[8] = {"category:","template:","(disambiguation)","mediawiki:","portal:","book:","timedtext:","module:"}; //unwanted filetypes
 
         std::cout<<"Would you like to create (T) Pure text files or (W) Web link files?"<<std::endl;
         std::cin>>type;
@@ -78,6 +78,8 @@ int main(int argc, char* argv[]){
         if (mkdir("OtherData", 0777) == -1){
             std::cerr << "Error :  " << strerror(errno) << std::endl;  //Initializing Directory
         }else std::cout << "OtherData Directory created\n";
+
+        std::ofstream wredirect("OtherData/redirects.txt");
 
         if(type == "T"){
             type = "Articles";
@@ -93,13 +95,13 @@ int main(int argc, char* argv[]){
             std::ofstream namelist("Webs/!!!articlenames.txt"); //a big'ol list of article names, just incase.
             namelist<<"Article Names:\n";
         }
-
+        bool nart = false; //not article
+        bool yred = false; //if redirect
         std::cout<<"Enter a negative number for entire database scan, or enter 0 to stop scanning."<<std::endl; //negative number is arbitrary, just roll with it
         while(next != 0){
             std::cout<<"Read (# of Articles): ";
             std::cin>>next;
-            bool nart = false; //not article
-            bool nred = false;
+            inlist dirs;
             std::string name;
             int red = 0;//counter for set reading account
             while(read>>word){
@@ -112,7 +114,7 @@ int main(int argc, char* argv[]){
                     while(word.find("</text>")==std::string::npos){ //until end of article
                         read>>nextword;
                         if(nextword.find("<redirect")!=std::string::npos){
-                          nred = true; //is redirect to be saved
+                          yred = true; //is redirect to be saved
                           nart = true; //but its not an article
                         }
                         word+=" ";
@@ -120,17 +122,16 @@ int main(int argc, char* argv[]){
                     }
                     name = word.substr(word.find("<title>")+7,word.find("</title>")-7); //extracting title
                     transform(name.begin(), name.end(), name.begin(), ::tolower); //to lowercase
-                    for(int x = 0;x<8;x++){ //checking all other invalid article types
-                        if(name.find(articletypes[x])!=std::string::npos) nart = true;
-                    }
+                    nart = badAType(name);
                     if(!nart){
-                      if(type == "Webs") readarticleL(name,word,namelist); //read article is where each individual article is parsed
-                      else if(type == "Articles") readarticle(name,word,namelist); //read article is where each individual article is parsed
+                      if(type == "Webs") readarticleL(name,word,namelist,dirs); //read article is where each individual article is parsed
+                      else if(type == "Articles") readarticle(name,word,namelist,dirs); //read article is where each individual article is parsed
                       red++;//actual article found, increment
-                    }else if(nred){
-                      redirectadd(name, word);
+                    }else if(yred){
+                      redirectadd(name, word, wredirect);
                     }
                     nart = false;
+                    yred = false;
     }}}
         std::cout<<std::endl;
     }else if(option == 3){
@@ -166,6 +167,7 @@ int main(int argc, char* argv[]){
             scorelist<<"ALL HITLER SCORES (unordered):\n";
             hlist articlescore;
             inlist in;
+            inlist dirs;
             articlescore["adolf hitler"] = 0;
             std::string direc = "Webs";
             DIR* dirp = opendir(direc.c_str());
@@ -192,12 +194,14 @@ int main(int argc, char* argv[]){
     std::cout<<std::endl;
 }
 
-void readarticle(std::string name, std::string &article,std::ofstream &namelist){
+void readarticle(std::string name, std::string &article,std::ofstream &namelist, inlist &dirs){
     writecount++; //increment article count
     std::string dirname = finddir(name);
+    if(!dirs[dirname]){
+      if (mkdir(dirname.c_str(), 0777) == -1) std::cout << "Directory '"<< dirname << "'already exists (will be used regardless)\n";
+      else std::cout<<"New Directory: "<<dirname<<std::endl; //making new directory if new index
+    }
 
-    if (mkdir(dirname.c_str(), 0777) == -1){
-    }else{ std::cout << "New Directory: "<<dirname<<std::endl;} //making new directory if new index
 
     if(writecount % 10000 == 0){ //every 10k articles, update the user on profress and confirming its still running
         float percent = (double)writecount/(double)5861045; //This number is not arbitrary; it was the total article count of wikipedia as of May 2019.
@@ -211,12 +215,14 @@ void readarticle(std::string name, std::string &article,std::ofstream &namelist)
     articletxt<<name<<std::endl<<article<<std::endl; //give the file the name & full article
     articletxt.close(); //close it, then return
 }
-void readarticleL(std::string name, std::string &article,std::ofstream &namelist){
+void readarticleL(std::string name, std::string &article,std::ofstream &namelist, inlist &dirs){
     writecount++; //increment article count
     std::string dirname = finddir(name);
-
-    if (mkdir(dirname.c_str(), 0777) == -1){
-    }else{ std::cout << "New Directory: "<<dirname<<std::endl;}
+    if(!dirs[dirname]){
+      if (mkdir(dirname.c_str(), 0777) == -1) std::cout << "Directory '"<< dirname << "'already exists (will be used regardless)\n";
+      else std::cout << "New Directory: "<<dirname<<std::endl; //making new directory if new index
+      dirs[dirname] = true;
+    }
 
     if(writecount % 10000 == 0){
         float percent = (double)writecount/(double)5861045;
@@ -284,9 +290,13 @@ void linkarticlesR(std::string filename, std::string dirname, std::string &artic
     std::ofstream warticle(filename); //the new file
     std::string link;
     while(article.find("[[")!=std::string::npos){ //links in XML are denoted by [[...]], we're finding them
-        int tempL = article.find("[[")+2;
-        int tempR = article.find("]]");
-        if(tempR < tempL-2){ //if end of file markings
+        unsigned int tempL = article.find("[[")+2;
+        unsigned int tempR = article.find("]]");
+        unsigned int ref;
+        if((ref = article.find("<ref>")) != std::string::npos && ref < tempL){
+          ref = article.find("</ref>");
+          article = article.substr(ref+6);
+        }else if(tempR < tempL-2){ //if end of file markings
             article = article.substr(tempR+2); //cut article to past first link
         }else if (article.substr(tempL, 5).find("File:")==std::string::npos){ //if not beginning of file
             link = article.substr(tempL,tempR-tempL); //extract link
@@ -294,30 +304,27 @@ void linkarticlesR(std::string filename, std::string dirname, std::string &artic
             transform(link.begin(), link.end(), link.begin(), ::tolower); //to lowercase
             if(link.find("|")!=std::string::npos) link = link.substr(0,link.find("|")); //how link are parsed in XML, left of | is actual article name
             if(link.find("#")!=std::string::npos) link = link.substr(0,link.find("#")); //how link are parsed in XML, left of | is actual article name
-            warticle<<link<<std::endl; //add link
+            if(!badAType(link)) warticle<<link<<std::endl; //add link, if an article
         }else{
-            article = article.substr(tempL); //cut article to past first link
+            article = article.substr(tempL); //accomodating for parsing from files
         }
     }
     warticle.close(); //close and return
 }
 
-void redirectadd(std::string name, std::string &article){
-  std::string loc = "OtherData/redirects.txt";
+void redirectadd(std::string name, std::string &article, std::ofstream &wredirect){
   std::string linkedart = article.substr(article.find("<redirect")+17); //extracting title
-  linkedart = article.substr(0, article.find("/>")-2);
-  std::ofstream wredirect(loc);
+  linkedart = linkedart.substr(0, linkedart.find("/>")-2);
   wredirect << name << "::" << linkedart << std::endl;
-
-
 }
 
 std::string finddir(std::string &name){
     std::string dirname;
+    std::string chars = "/\\:*?<>|+()@-!$\"";
     ///Creating file name; taking out prohibited characters and names for windows file system
     if(name.length()<2) dirname = name.substr(0,1); //length of file; first two characters at most
     else dirname = name.substr(0,2);
-    if(containsChars(dirname,"/\\:*?<>|+()@-!$\"")) dirname = "etc"; //prohibited file characters
+    if(containsChars(dirname,chars.c_str())) dirname = "etc"; //prohibited file characters
     while(name.find(".")!=std::string::npos) name.replace(name.find("."),1,"(dot)"); //. isnt (totally) allowed, but its very common and i dont want to filter it into etc
     while(dirname.find(".")!=std::string::npos) dirname.replace(dirname.find("."),1,"(dot)");
     if(prohibitedName(name)) name += "(ws)"; //the hard-coded non-allowed windows names
@@ -327,7 +334,7 @@ std::string finddir(std::string &name){
 void removeChars(std::string &str, char* charsToRemove ) {
     for (unsigned int i = 0; i < strlen(charsToRemove); ++i ) str.erase(remove(str.begin(), str.end(), charsToRemove[i]), str.end() );
 }
-bool containsChars(std::string &str, char* charsToRemove ) {
+bool containsChars(std::string &str, const char* charsToRemove ) {
     for ( unsigned int i = 0; i < strlen(charsToRemove); ++i ) {
         if(str.find(charsToRemove[i])!=std::string::npos) return true;
     }
@@ -337,4 +344,11 @@ bool prohibitedName(std::string str){
     if(str == "con"||str == "prn"||str == "aux"||str == "nul") return true;
     if(str.length() == 4 && (str.substr(0,3) == "COM" || str.substr(0,3) == "LPT") && isdigit(str[3])) return true;
     return false;
+}
+bool badAType(std::string &name){
+  std::string articletypes[8] = {"category:","template:","(disambiguation)","mediawiki:","portal:","book:","timedtext:","module:"}; //unwanted filetypes
+  for(int x = 0;x<8;x++){ //checking all other invalid article types
+      if(name.find(articletypes[x])!=std::string::npos) return true;
+  }
+  return false;
 }
