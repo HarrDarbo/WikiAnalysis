@@ -11,22 +11,27 @@
 #include <dirent.h>
 #include <unordered_map>
 
-typedef std::unordered_map<std::string, int> hlist;
-typedef std::unordered_map<std::string, bool> inlist;
+typedef std::unordered_map<std::string, int> hlist; //structure for hscores
+typedef std::unordered_map<std::string, bool> inlist; //structure for finished hscores and redirects
 
+//global because its small and convenient
 int writecount = 0;
 std::string type;
-void readarticle(std::string name, std::string &article, std::ofstream &namelist, inlist &dirs);
-void readarticleL(std::string name, std::string &article, std::ofstream &namelist, inlist &dirs);
-void removeChars( std::string &str, char* charsToRemove);
-bool containsChars( std::string &str, const char* charsToRemove);
-bool prohibitedName(std::string str);
-void linkarticles(std::string filename, std::string dirname, std::string directory);
-void linkarticlesR(std::string filename, std::string dirname, std::string &article);
-int Hconnect(hlist &ascore, inlist &in, std::string name, std::string path);
-void redirectadd(std::string name, std::string &article, std::ofstream &wredirect);
-std::string finddir(std::string &name);
-bool badAType(std::string &name);
+
+//computation methods
+void readarticle(std::string name, std::string &article, std::ofstream &namelist, inlist &dirs); //make text files from XML
+void readarticleL(std::string name, std::string &article, std::ofstream &namelist, inlist &dirs); //make text, but feed to linkArticlesR
+void linkarticles(std::string filename, std::string dirname, std::string directory); //make web files from existing text files
+void linkarticlesR(std::string filename, std::string dirname, std::string &article); //makes web files from info from readarticleL
+int Hconnect(hlist &ascore, inlist &in, std::string name, std::string path); //connect all webs, returns scores
+
+//methods for parsing or searching
+void removeChars( std::string &str, char* charsToRemove); //remove all instances of characters
+bool containsChars( std::string &str, const char* charsToRemove); //does this contain these characters
+bool prohibitedName(std::string str); //windows prohibited file names
+void redirectadd(std::string name, std::string &article, std::ofstream &wredirect); //add a redirect to redirect file
+std::string finddir(std::string &name); //find the directory for the given file name
+bool badAType(std::string &name); //finds non-article pages
 
 int main(int argc, char* argv[]){
     std::ifstream read("articles.xml"); //XML file to be read
@@ -42,7 +47,7 @@ int main(int argc, char* argv[]){
     int option = -1;
     for(int x = 0;x<skip;x++) read>>word; //skipping X words, testing purposes only
 
-    std::cout<<"What would you like to do?\n1:Manual Walking\n2:Create info file system (Long Run Time)\n3: Analyze a dataset (Very Long Run Time)\n";
+    std::cout<<"What would you like to do?\n1:Manual Walking\n2:Create info file system (Long Run Time)\n3:Analyze a dataset (Very Long Run Time)\n";
     std::cin>>option;
 
     if(option == 1){
@@ -286,7 +291,7 @@ void linkarticles(std::string filename, std::string dirname, std::string directo
     if (std::remove(aname.c_str( )) !=0)std::cout<<"Remove operation failed"<<std:: endl; //remove the original file in articles to save space.
     else std::cout<<aname<<" has been removed."<<std::endl;
 }
-void linkarticlesR(std::string filename, std::string dirname, std::string &article){
+void linkarticlesR(std::string filename, std::string dirname, std::string &article){ //this one is used by readarticleL, directly makes webs
     std::ofstream warticle(filename); //the new file
     std::string link;
     while(article.find("[[")!=std::string::npos){ //links in XML are denoted by [[...]], we're finding them

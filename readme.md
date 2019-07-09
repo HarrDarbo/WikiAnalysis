@@ -1,10 +1,12 @@
-CREATOR: Harrison Darbin
-NOTABLE CONTRIBUTORS: None yet :(
-VERSION: 0.1.0: "The Possibly Working Update"
+#WIKIANALYSIS (Working name) ALPHA\
+##CREATOR: Harrison Darbin\
+##NOTABLE CONTRIBUTORS: None yet :(\
+##VERSION: 0.1.1: "The Possibly Working Update"\ 
 
-Current issues: Getting a proper article database.
-What we really need: Dynamic file locations
-Looking Forward: Once the web files are done, get the Hitler score, then expand to more general application.
-How it works: idk its pretty self explanatory so far
+Current issues: Clearing out unwanted (non-wiki) links, improving runtime as always.\
+What we really need: Hope and a computer powerful enough to run this (aka hope).\
+Looking Forward: Once the web files are done, get the first Hscore, then expand to more general application.\
+How it works: \
+We use this thing called code\
 
-Special thanks to John "heffe lover" Allewein for being the best
+Special thanks to Andrew King and John Allwein i think
