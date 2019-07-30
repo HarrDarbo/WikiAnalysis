@@ -1,10 +1,10 @@
-#include <iostream>   // library for reading & writing from the console/keyboard
-#include <cmath>      // library with the square root function & absolute value
-#include <cstdlib>    // library with the exit function
-#include <fstream>    // library used to interact with files
-#include <vector>     // for vectors, duh
-#include <algorithm>  // for sort and the sort
-#include <string.h>   // for string compare
+#include <iostream>      // library for reading & writing from the console/keyboard
+#include <cmath>         // library with the square root function & absolute value
+#include <cstdlib>       // library with the exit function
+#include <fstream>       // library used to interact with files
+#include <vector>        // for vectors, duh
+#include <algorithm>     // for sort and the sort
+#include <string.h>      // for string compare
 #include <bits/stdc++.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -26,8 +26,8 @@ void linkarticlesR(std::string filename, std::string dirname, std::string &artic
 int Hconnect(hlist &ascore, inlist &in, std::string name, std::string path); //connect all webs, returns scores
 
 //methods for parsing or searching
-void removeChars( std::string &str, char* charsToRemove); //remove all instances of characters
-bool containsChars( std::string &str, const char* charsToRemove); //does this contain these characters
+void removeChars(std::string &str, char* charsToRemove); //remove all instances of characters
+bool containsChars(std::string &str, const char* charsToRemove); //does this contain these characters
 bool prohibitedName(std::string str); //windows prohibited file names
 void redirectadd(std::string name, std::string &article, std::ofstream &wredirect); //add a redirect to redirect file
 std::string finddir(std::string &name); //find the directory for the given file name
@@ -42,16 +42,17 @@ int main(int argc, char* argv[]){
     std::string word; //base word to be read in
     std::string nextword; //for word concatenation
     int wordsread = 0;
-    int skip = 0; //number of initial skip lines
     int next = -1; //whether or not to continue from manual progression
     int option = -1;
+
+    int skip = 0; //number of initial skip lines
     for(int x = 0;x<skip;x++) read>>word; //skipping X words, testing purposes only
 
     std::cout<<"What would you like to do?\n1:Manual Walking\n2:Create info file system (Long Run Time)\n3:Analyze a dataset (Very Long Run Time)\n";
     std::cin>>option;
 
-    if(option == 1){
-        /**MANUAL WALKING: Testing purposes only really, but a default option now.**/
+    if(option == 1){ //MANUAL WALKING
+        //MANUAL WALKING: Testing purposes only really, but a default option for now.
         while(next != 0){
             std::cout<<"Read (# of Words): "; //Words may not directly correlate to "words", but it's too insignificant to care about
             std::cin>>next; //next reads amount of words
@@ -65,7 +66,7 @@ int main(int argc, char* argv[]){
                         word+=" ";
                         word+=nextword;
                     }
-                    //std::cout<<word<<std::endl;
+                    std::cout<<word<<std::endl;
                     x--; //XML formatting won't count towards word count
                 }else{
                     std::cout<<word<<" ";//just printing it out; once again, only for testing purposes
@@ -74,7 +75,7 @@ int main(int argc, char* argv[]){
             std::cout<<std::endl;
         }
 
-    }else if(option == 2){
+    }else if(option == 2){ //MAKING ARTICLE DATABASES
         /**CREATING ARTICLE DATABASE: Main Purpose, can make raw articles or webs**/
 
         std::cout<<"Would you like to create (T) Pure text files or (W) Web link files?"<<std::endl;
@@ -139,7 +140,7 @@ int main(int argc, char* argv[]){
                     yred = false;
     }}}
         std::cout<<std::endl;
-    }else if(option == 3){
+    }else if(option == 3){ //MAKING HLIST
         /**ANALYSIS BASED ON PREVIOUSLY GENERATED DATABASES**/
         ///at the moment its only text to webs
         std::cout<<"Would you like to (W) Create Web link files (based on existing text files) (H) Calculate the Hitler Score?"<<std::endl;
@@ -246,6 +247,12 @@ int Hconnect(hlist &ascore, inlist &in, std::string name, std::string path){
     int top = 999999999;
     if(itr == ascore.end()){ //if not in the hash map already
         std::ifstream file(path); //read in contents from parsed file
+
+        //TODO: CHANGE TO A HASH MAP FOR SPEED, DONT CHECK H INDIVIDUALLY
+
+
+
+
         std::vector<std::string> links; //all the links in one particular file
         std::string link;
         while(file>>link){
@@ -256,14 +263,14 @@ int Hconnect(hlist &ascore, inlist &in, std::string name, std::string path){
             links.push_back(link);
         } //by here we have a valid vector of links
         int distance;
-        std::string dir = finddir(name);
-        for(unsigned int x = 0;x<links.size();x++){
-            initr = in.find(links[x]);
-            if(initr == in.end()) distance = Hconnect(ascore,in,links[x],dir)+1;
-            else distance = top+1;
-            if(distance < top) top = distance;
+        std::string dir = finddir(name) + "/" + name; //get ready to recur
+        for(unsigned int x = 0;x<links.size();x++){ //for all links in web file
+            initr = in.find(links[x]); //checking if score already found
+            if(initr == in.end()) distance = Hconnect(ascore,in,links[x],dir)+1; //if not found, recur and find that link's hscore
+            else distance = ascore[links[x]] +1; //if found, use and add 1
+            if(distance < top) top = distance; //if smallest distance, use
         }
-    }else{
+    }else{ //file has aleady been calculated
         return ascore[name];
     }
     return top;
@@ -330,9 +337,10 @@ std::string finddir(std::string &name){
     if(name.length()<2) dirname = name.substr(0,1); //length of file; first two characters at most
     else dirname = name.substr(0,2);
     if(containsChars(dirname,chars.c_str())) dirname = "etc"; //prohibited file characters
-    while(name.find(".")!=std::string::npos) name.replace(name.find("."),1,"(dot)"); //. isnt (totally) allowed, but its very common and i dont want to filter it into etc
+    //while(name.find(".")!=std::string::npos) name.replace(name.find("."),1,"(dot)"); //. isnt (totally) allowed, but its very common and i dont want to filter it into etc
     while(dirname.find(".")!=std::string::npos) dirname.replace(dirname.find("."),1,"(dot)");
     if(prohibitedName(name)) name += "(ws)"; //the hard-coded non-allowed windows names
+    if(dirname.substr(1,2) == " ") dirname = dirname.substr(0,1) + "(sng)";
     dirname = type + "/" + dirname;
     return dirname;
 }
