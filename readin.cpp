@@ -1,15 +1,16 @@
-#include <iostream>      // library for reading & writing from the console/keyboard
-#include <cmath>         // library with the square root function & absolute value
-#include <cstdlib>       // library with the exit function
-#include <fstream>       // library used to interact with files
-#include <vector>        // for vectors, duh
-#include <algorithm>     // for sort and the sort
-#include <string.h>      // for string compare
+#include <iostream>
+#include <cmath>
+#include <cstdlib>
+#include <fstream>
+#include <vector>
+#include <algorithm>
+#include <string.h>
 #include <bits/stdc++.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <unordered_map>
+#include <unistd.h>
 
 typedef std::unordered_map<std::string, int> hlist; //structure for hscores
 typedef std::unordered_map<std::string, bool> inlist; //structure for finished hscores and redirects
@@ -128,14 +129,19 @@ int main(int argc, char* argv[]){
                     }
                     name = word.substr(word.find("<title>")+7,word.find("</title>")-7); //extracting title
                     transform(name.begin(), name.end(), name.begin(), ::tolower); //to lowercase
+                    if(!nart) red++; //article count for arbitrary amount
                     nart = badAType(name);
-                    if(!nart){
-                      if(type == "Webs") readarticleL(name,word,namelist,dirs); //read article is where each individual article is parsed
-                      else if(type == "Articles") readarticle(name,word,namelist,dirs); //read article is where each individual article is parsed
-                      red++;//actual article found, increment
-                    }else if(yred){
-                      redirectadd(name, word, wredirect);
+                    pid_t pid = fork();
+                    if(pid == 0){
+                      if(yred){
+                        redirectadd(name, word, wredirect);
+                      }else if(!nart){
+                        if(type == "Webs") readarticleL(name,word,namelist,dirs); //read article is where each individual article is parsed
+                        else if(type == "Articles") readarticle(name,word,namelist,dirs); //read article is where each individual article is parsed
+                      }
+                      return 0;
                     }
+
                     nart = false;
                     yred = false;
     }}}
@@ -204,8 +210,7 @@ void readarticle(std::string name, std::string &article,std::ofstream &namelist,
     writecount++; //increment article count
     std::string dirname = finddir(name);
     if(!dirs[dirname]){
-      if (mkdir(dirname.c_str(), 0777) == -1) std::cout << "Directory '"<< dirname << "'already exists (will be used regardless)\n";
-      else std::cout<<"New Directory: "<<dirname<<std::endl; //making new directory if new index
+      if (mkdir(dirname.c_str(), 0777) != -1) std::cout<<"New Directory: "<<dirname<<std::endl; //making new directory if new index
     }
 
 
@@ -225,8 +230,7 @@ void readarticleL(std::string name, std::string &article,std::ofstream &namelist
     writecount++; //increment article count
     std::string dirname = finddir(name);
     if(!dirs[dirname]){
-      if (mkdir(dirname.c_str(), 0777) == -1) std::cout << "Directory '"<< dirname << "'already exists (will be used regardless)\n";
-      else std::cout << "New Directory: "<<dirname<<std::endl; //making new directory if new index
+      if (mkdir(dirname.c_str(), 0777) != -1) std::cout << "New Directory: "<<dirname<<std::endl; //making new directory if new index
       dirs[dirname] = true;
     }
 
