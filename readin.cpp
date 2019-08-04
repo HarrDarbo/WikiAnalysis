@@ -116,7 +116,10 @@ int main(int argc, char* argv[]){
 
                 if(word.find("<title>")!=std::string::npos){ //starting article where we care; in the title
 
-                    if(word.find("<redirect")!=std::string::npos) nart = true; //checking for invalid article type redirect (different wa of finding than other unaccepted article types)
+                    /*if(word.find("<redirect")!=std::string::npos){
+                      nart = true; //checking for invalid article type redirect (different wa of finding than other unaccepted article types)
+                      yred = true;
+                    }*/
                     while(word.find("</text>")==std::string::npos){ //until end of article
                         read>>nextword;
                         if(nextword.find("<redirect")!=std::string::npos){
@@ -128,7 +131,7 @@ int main(int argc, char* argv[]){
                     }
                     name = word.substr(word.find("<title>")+7,word.find("</title>")-7); //extracting title
                     transform(name.begin(), name.end(), name.begin(), ::tolower); //to lowercase
-                    nart = badAType(name);
+                    if(!yred) nart = badAType(name);
                     if(!nart){
                       if(type == "Webs") readarticleL(name,word,namelist,dirs); //read article is where each individual article is parsed
                       else if(type == "Articles") readarticle(name,word,namelist,dirs); //read article is where each individual article is parsed
@@ -327,7 +330,8 @@ void linkarticlesR(std::string filename, std::string dirname, std::string &artic
 void redirectadd(std::string name, std::string &article, std::ofstream &wredirect){
   std::string linkedart = article.substr(article.find("<redirect")+17); //extracting title
   linkedart = linkedart.substr(0, linkedart.find("/>")-2);
-  wredirect << name << "::" << linkedart << std::endl;
+  transform(linkedart.begin(), linkedart.end(), linkedart.begin(), ::tolower); //to lowercase
+  if(linkedart != name) wredirect << name << ",,," << linkedart << std::endl;
 }
 
 std::string finddir(std::string &name){
