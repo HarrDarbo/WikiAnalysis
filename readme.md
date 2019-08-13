@@ -1,16 +1,17 @@
-# Wikipedia Link Analysis Program (Working Title) v0.1.2
+![](https://github.com/HarrDarbo/WikiAnalysis/blob/master/assets/LogoAI.png)
+# v0.2.0
 ### CREATOR: Harrison Darbin
 #### OTHER CONTRIBUTORS: 
  - Karen "[TalkingKittyCat](https://github.com/talkingkittycat)" (Working, but yet to push changes)
-#### VERSION: 0.1.2: "The Probably Working Update"
+ - Garrett Thompson
+#### VERSION: 0.2.0: "The Actually Working Update"
 
 ### Current issues: 
- - Clearing out unwanted (non-article) links
  - Improving runtime (as always).
 ### Current efforts: 
- - Full Functionality on other OSes (only fully tested on Windows so far)
- - Better CPU Usage
- - Finalizing HScore & testing
+ - Finalizing HScore & implementing a second, faster HScore algorithm
+ - Beginning to implement a form of PageRank (not yet pushed)
+ - Creating a frontend for user interaction with collected data (not yet pushed, low priority)
 ### What we really need: Hope and a stronger computer.
 ### Code Format: Condensed, same-line comments.
 ```
@@ -25,9 +26,4 @@ void Example(){ //This is an example function
   while(test1 < test2) if(test1 != 10) test1++; //test loop
 }
 ```
-
-
-
-
-
 Special thanks to Andrew King
