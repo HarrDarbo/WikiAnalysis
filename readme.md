@@ -2,10 +2,12 @@
 # v0.2.0
 ### CREATOR: Harrison Darbin
 #### OTHER CONTRIBUTORS: 
- - Karen "[TalkingKittyCat](https://github.com/talkingkittycat)" (Working, but yet to push changes)
- - Garrett Thompson
+ - Karen "[TalkingKittyCat](https://github.com/talkingkittycat)" 
+ - Garrett "[GarrettTh](https://github.com/GarrettTh)" Thompson
 #### VERSION: 0.2.0: "The Actually Working Update"
 
+### IMPORTANT NOTE
+If calculating the HScore, use the HScoreNew algorithm. The old HScore has not been fully tested, and is unknown if it will even finish on larger sets.
 ### Current issues: 
  - Improving runtime (as always).
 ### Current efforts: 
